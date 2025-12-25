@@ -1,0 +1,103 @@
+import axios from 'axios'
+
+// API Configuration (PRODUCTION READY)
+// API base URL must be set via REACT_APP_API_BASE_URL environment variable
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+// Request interceptor for adding auth headers if needed
+api.interceptors.request.use(
+  (config) => {
+    // Add auth headers here if needed
+    const token = localStorage.getItem('accessToken')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// Response interceptor for handling errors
+api.interceptors.response.use(
+  (response) => {
+    return response
+  },
+  (error) => {
+    // Handle common errors
+    if (error.response) {
+      // Server responded with error status
+      const { status, data } = error.response
+      const message = (() => {
+        if (!data) return 'Network error'
+        if (typeof data.detail === 'string') return data.detail
+        if (Array.isArray(data.detail)) return data.detail.map((x) => x?.msg || x?.message || String(x)).join('; ')
+        // Prefer our standardized error envelope
+        const envelopeMsg = data.error?.message || data.message
+        const envelopeDetails = data.error?.details
+        if (status === 422 && Array.isArray(envelopeDetails)) {
+          return envelopeDetails
+            .map((d) => d?.msg || d?.message || d?.detail || (typeof d === 'string' ? d : JSON.stringify(d)))
+            .join('; ')
+        }
+        return envelopeMsg || 'Unknown error'
+      })()
+
+      if (status === 401) {
+        // Unauthorized - redirect to login if needed
+        console.error('Unauthorized access')
+      } else if (status === 500) {
+        console.error('Server error:', message || 'Internal server error')
+      } else {
+        console.error(`API Error (${status}):`, message)
+      }
+    } else if (error.request) {
+      // Network error
+      console.error('Network error - please check your connection')
+    } else {
+      // Other error
+      console.error('Request error:', error.message)
+    }
+
+    return Promise.reject(error)
+  }
+)
+
+// API Methods
+export const apiService = {
+  // Health check
+  health: () => api.get('/health'),
+
+  // Auth
+  signup: (data) => api.post("/auth/signup", data),
+  login: (data) => api.post("/auth/login", data),
+  logout: () => api.post('/auth/logout'),
+  refresh: (refresh_token) => api.post('/auth/refresh', { refresh_token }),
+  getMe: () => api.get('/auth/me'),
+
+  // Recommendations
+  createRecommendations: (data) => api.post('/recommendations', data),
+  getRecommendation: (id) => api.get(`/recommendations/${id}`),
+
+  // Components
+  listComponents: (params) => api.get('/components', { params }),
+  getComponent: (id) => api.get(`/components/${id}`),
+
+  // Feedback
+  submitFeedback: (data) => api.post('/feedback', data),
+
+  // User
+  updateUserProfile: (data) => api.put('/users/profile', data),
+  changePassword: (data) => api.put('/auth/password', data),
+}
+
+export default api
