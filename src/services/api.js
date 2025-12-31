@@ -1,16 +1,17 @@
-import axios from 'axios'
-
 // API Configuration (PRODUCTION READY)
 // API base URL must be set via REACT_APP_API_BASE_URL environment variable
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+// src/services/api.js
+import axios from "axios";
+
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "https://pc-recommendation-system-backend-e3u4.onrender.com/api/v1";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
-})
+  timeout: 10000,
+});
 
 // Request interceptor for adding auth headers if needed
 api.interceptors.request.use(
@@ -36,7 +37,9 @@ api.interceptors.response.use(
     // Handle common errors
     if (error.response) {
       // Server responded with error status
-      const { status, data } = error.response
+      const { status, data, headers } = error.response
+      console.error('Full Axios error response:', { status, data, headers })
+
       const message = (() => {
         if (!data) return 'Network error'
         if (typeof data.detail === 'string') return data.detail
@@ -52,9 +55,10 @@ api.interceptors.response.use(
         return envelopeMsg || 'Unknown error'
       })()
 
-      if (status === 401) {
-        // Unauthorized - redirect to login if needed
-        console.error('Unauthorized access')
+      if (status === 404) {
+        console.error('Endpoint not found - verify in Swagger')
+      } else if (status === 401) {
+        console.error('Unauthorized access - verify token is present and valid')
       } else if (status === 500) {
         console.error('Server error:', message || 'Internal server error')
       } else {
@@ -78,26 +82,48 @@ export const apiService = {
   health: () => api.get('/health'),
 
   // Auth
-  signup: (data) => api.post("/auth/signup", data),
-  login: (data) => api.post("/auth/login", data),
-  logout: () => api.post('/auth/logout'),
-  refresh: (refresh_token) => api.post('/auth/refresh', { refresh_token }),
-  getMe: () => api.get('/auth/me'),
+  // ✅ CORRECT ROUTES
+ signup: (data) => api.post("/auth/signup", data),
+ login: (data) => api.post("/auth/login", data),
+ logout: () => api.post("/auth/logout"),
+ refresh: (refresh_token) =>
+   api.post("/auth/refresh", { refresh_token }),
+ getMe: () => api.get("/auth/me"),
 
   // Recommendations
-  createRecommendations: (data) => api.post('/recommendations', data),
-  getRecommendation: (id) => api.get(`/recommendations/${id}`),
+ createRecommendations: (data) =>
+   api.post("/recommendations", data),
 
-  // Components
-  listComponents: (params) => api.get('/components', { params }),
-  getComponent: (id) => api.get(`/components/${id}`),
+ getRecommendation: (id) =>
+   api.get(`/recommendations/${id}`),
 
-  // Feedback
-  submitFeedback: (data) => api.post('/feedback', data),
+ // Components
+ listComponents: (params) =>
+   api.get("/components", { params }),
 
-  // User
-  updateUserProfile: (data) => api.put('/users/profile', data),
-  changePassword: (data) => api.put('/auth/password', data),
+ getComponent: (id) =>
+   api.get(`/components/${id}`),
+
+ // Feedback
+ submitFeedback: (data) =>
+   api.post("/feedback", data),
+
+ // User
+ updateUserProfile: (data) =>
+   api.put("/users/profile", data),
+
+ getUserPreferences: () =>
+   api.get("/users/preferences"),
+
+ updateUserPreferences: (data) =>
+   api.put("/users/preferences", data),
+
+ getUserRecommendations: (params) =>
+   api.get("/users/recommendations", { params }),
+
+ changePassword: (data) =>
+   api.put("/auth/password", data),
+
 }
 
 export default api

@@ -30,7 +30,7 @@ import {
 } from '@mui/material'
 import { ExpandMore as ExpandMoreIcon, Build as BuildIcon } from '@mui/icons-material'
 import { useAuth } from '../hooks/useAuth'
-import api from '../services/api'
+import { apiService } from '../services/api'
 
 const Recommendations = () => {
   const theme = useTheme()
@@ -60,7 +60,7 @@ const Recommendations = () => {
 
   const loadUserPreferences = async () => {
     try {
-      const response = await api.get('/users/preferences')
+      const response = await apiService.getUserPreferences()
       const prefs = response.data
 
       setFormData(prev => ({
@@ -143,14 +143,14 @@ const Recommendations = () => {
       }
 
       try {
-        await api.put('/users/preferences', preferencesData)
+        await apiService.updateUserPreferences(preferencesData)
         console.log('User preferences saved')
       } catch (prefError) {
         console.warn('Could not save preferences:', prefError)
         // Continue with recommendation even if preferences save fails
       }
 
-      const response = await api.post('/recommendations', requestData)
+      const response = await apiService.createRecommendations(requestData)
       const data = response.data
 
       setRecommendations(data.recommendations || [])

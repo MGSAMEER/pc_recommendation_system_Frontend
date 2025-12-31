@@ -29,7 +29,7 @@ import {
   Logout as LogoutIcon
 } from '@mui/icons-material'
 import { useAuth } from '../hooks/useAuth'
-import api from '../services/api'
+import { apiService } from '../services/api'
 
 const Dashboard = () => {
   const theme = useTheme()
@@ -37,6 +37,11 @@ const Dashboard = () => {
   const { user, logout } = useAuth()
   const [recentRecommendations, setRecentRecommendations] = useState([])
   const [loading, setLoading] = useState(true)
+  
+  // Debug: Log state updates
+  useEffect(() => {
+    console.log('Recent recommendations state updated:', recentRecommendations)
+  }, [recentRecommendations])
 
   // Dashboard specific colors - theme-aware
   const colors = {
@@ -52,17 +57,16 @@ const Dashboard = () => {
     const loadDashboardData = async () => {
       try {
         // Load user preferences first
-        const preferencesResponse = await api.get('/users/preferences')
+        const preferencesResponse = await apiService.getUserPreferences()
         if (preferencesResponse.data) {
           // Could store preferences in context or local state if needed
           console.log('User preferences loaded:', preferencesResponse.data)
         }
-
+  
         // Load recent recommendations
-        const recommendationsResponse = await api.get('/users/recommendations', {
-          params: { limit: 3, offset: 0 }
-        })
-
+        const recommendationsResponse = await apiService.getUserRecommendations({ limit: 3, offset: 0 })
+        console.log('Recommendations API response:', recommendationsResponse.data)
+  
         if (recommendationsResponse.data?.recommendations) {
           // Transform the data to match dashboard format
           const transformedRecs = recommendationsResponse.data.recommendations.map(rec => ({
@@ -74,7 +78,10 @@ const Dashboard = () => {
             configCount: rec.config_count || 0,
             hasFeedback: rec.has_feedback || false
           }))
+          console.log('Transformed recommendations:', transformedRecs)
           setRecentRecommendations(transformedRecs)
+        } else {
+          console.log('No recommendations found in response')
         }
       } catch (error) {
         console.error('Error loading dashboard data:', error)
@@ -325,8 +332,8 @@ const Dashboard = () => {
         </Box>
 
         {loading ? (
-          <Card sx={{ 
-            p: 4, 
+          <Card sx={{
+            p: 4,
             textAlign: 'center',
             background: theme.palette.background.paper,
             border: `1px solid ${theme.palette.divider}`
@@ -337,6 +344,7 @@ const Dashboard = () => {
             </Typography>
           </Card>
         ) : recentRecommendations.length > 0 ? (
+          console.log('Rendering recommendations:', recentRecommendations),
           <Grid container spacing={3}>
             {recentRecommendations.map((rec, index) => (
               <Grid item xs={12} md={6} key={rec.id}>

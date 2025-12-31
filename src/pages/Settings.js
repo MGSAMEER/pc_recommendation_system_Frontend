@@ -41,7 +41,7 @@ import {
   Delete as DeleteIcon
 } from '@mui/icons-material'
 import { useAuth } from '../hooks/useAuth'
-import api from '../services/api'
+import { apiService } from '../services/api'
 
 const Settings = () => {
   const theme = useTheme()
@@ -76,7 +76,7 @@ const Settings = () => {
   const loadSettings = async () => {
     try {
       // Load user preferences
-      const prefsResponse = await api.get('/users/preferences')
+      const prefsResponse = await apiService.getUserPreferences()
       if (prefsResponse.data) {
         setPreferences(prefsResponse.data)
       }
@@ -127,7 +127,7 @@ const Settings = () => {
     setMessage('')
 
     try {
-      await api.put('/users/preferences', preferences)
+      await apiService.updateUserPreferences(preferences)
       setMessage('Preferences saved successfully!')
     } catch (err) {
       console.error('Error saving preferences:', err)
