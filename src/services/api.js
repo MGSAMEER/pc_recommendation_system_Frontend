@@ -3,7 +3,7 @@
 // src/services/api.js
 import axios from "axios";
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "https://pc-recommendation-system-backend-e3u4.onrender.com/api/v1";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || process.env.REACT_APP_API_BASE_URL || "https://pc-recommendation-system-backend-e3u4.onrender.com/api/v1";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -107,6 +107,17 @@ export const apiService = {
  // Feedback
  submitFeedback: (data) =>
    api.post("/feedback", data),
+
+ // Analytics
+ submitAnalyticsEvent: (data) =>
+   api.post("/analytics/events", data).catch(error => {
+     console.error('Analytics submission failed (non-critical):', error.message);
+     return Promise.resolve({ success: false, error: 'Analytics submission failed' });
+   }),
+
+ // AI
+ chatWithOpenAI: (data) =>
+   api.post("/ai/chat", data),
 
  // User
  updateUserProfile: (data) =>
